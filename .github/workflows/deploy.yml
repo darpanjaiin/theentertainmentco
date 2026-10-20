@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - website-source.zip
+      - theentertainmentco-website-source.zip
       - .github/workflows/deploy.yml
   workflow_dispatch:
 
@@ -19,7 +19,6 @@ concurrency:
 
 jobs:
   build:
-    if: github.event.head_commit.message != 'Initialize GitHub Pages uploader'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,7 +27,7 @@ jobs:
       - name: Extract website source
         run: |
           mkdir -p website
-          unzip -q website-source.zip -d website
+          unzip -q theentertainmentco-website-source.zip -d website
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
