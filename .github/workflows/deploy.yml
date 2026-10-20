@@ -1,0 +1,77 @@
+name: Publish The Entertainment Co
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - website-source.zip
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event.head_commit.message != 'Initialize GitHub Pages uploader'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract website source
+        run: |
+          mkdir -p website
+          unzip -q website-source.zip -d website
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.21.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+
+      - name: Install packages
+        working-directory: website
+        run: pnpm install --frozen-lockfile
+
+      - name: Build website
+        working-directory: website
+        run: pnpm --filter @workspace/silent-audio build
+        env:
+          BASE_PATH: /
+          PORT: 5173
+
+      - name: Configure custom domain
+        run: |
+          echo "theentertainmentco.in" > website/artifacts/silent-audio/dist/public/CNAME
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload built site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/artifacts/silent-audio/dist/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
